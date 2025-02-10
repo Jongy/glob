@@ -127,7 +127,7 @@ pub trait GlobFs {
     fn read_dir(
         &self,
         path: PathBuf,
-    ) -> Result<Box<dyn Iterator<Item = Result<FsPathEntry, io::Error>>>, io::Error>;
+    ) -> Result<impl Iterator<Item = Result<FsPathEntry, io::Error>>, io::Error>;
 
     /// is_dir takes a PathBuf and returns a bool indicating if it's a directory.
     fn is_dir(&self, path: &Path) -> Result<bool, io::Error>;
@@ -141,7 +141,7 @@ impl<T: GlobFs + ?Sized> GlobFs for &T {
     fn read_dir(
         &self,
         path: PathBuf,
-    ) -> Result<Box<dyn Iterator<Item = Result<FsPathEntry, io::Error>>>, io::Error> {
+    ) -> Result<impl Iterator<Item = Result<FsPathEntry, io::Error>>, io::Error> {
         (*self).read_dir(path)
     }
 
@@ -183,16 +183,16 @@ impl GlobFs for SystemFs {
     fn read_dir(
         &self,
         path: PathBuf,
-    ) -> Result<Box<dyn Iterator<Item = Result<FsPathEntry, io::Error>>>, io::Error> {
+    ) -> Result<impl Iterator<Item = Result<FsPathEntry, io::Error>>, io::Error> {
         let read_dir = fs::read_dir(path)?;
 
-        Ok(Box::new(read_dir.map(move |entry| {
+        Ok(read_dir.map(move |entry| {
             entry.map(|e| {
                 let path = e.path();
                 let is_directory = Self::dir_entry_is_dir(&path, e).unwrap_or(false);
                 FsPathEntry { path, is_directory }
             })
-        })))
+        }))
     }
 
     fn is_dir(&self, path: &Path) -> Result<bool, io::Error> {
